@@ -1114,6 +1114,7 @@ body {
 }
 
 .proto-link-card__url {
+  display: block;
   background: rgba(0,212,255,.08);
   border: 1px solid rgba(0,212,255,.2);
   border-radius: 8px;
@@ -1121,6 +1122,13 @@ body {
   font-size: 11px;
   color: var(--blue);
   word-break: break-all;
+  text-decoration: none;
+  transition: background .2s, border-color .2s;
+}
+.proto-link-card__url:hover {
+  background: rgba(0,212,255,.18);
+  border-color: rgba(0,212,255,.5);
+  text-decoration: underline;
 }
 
 .proto-stats {
