@@ -21,10 +21,17 @@
   --card-bg: rgba(255, 255, 255, 0.035);
 }
 
+html {
+  height: 100%;
+}
+
 body {
   font-family: 'Inter', 'Segoe UI', sans-serif;
   background: #0a0a0f;
   color: #fff;
+  height: 100%;
+  overflow-y: scroll;
+  scroll-snap-type: y mandatory;
 }
 
 @media print {
@@ -32,23 +39,32 @@ body {
     size: 1280px 720px landscape;
     margin: 0;
   }
+  html, body {
+    height: auto;
+    overflow: visible;
+    scroll-snap-type: none;
+  }
   body {
     background: #000;
   }
   .slide {
+    width: 1280px !important;
+    height: 720px !important;
+    scroll-snap-align: unset !important;
     page-break-after: always;
     page-break-inside: avoid;
   }
 }
 
 .slide {
-  width: 1280px;
-  height: 720px;
+  width: 100vw;
+  height: 100vh;
   position: relative;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  margin-bottom: 4px;
+  scroll-snap-align: start;
+  flex-shrink: 0;
 }
 
 .slide--cover   { background: radial-gradient(ellipse at 20% 60%, #091833 0%, var(--bg-dark) 65%); }

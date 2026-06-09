@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>SENTINELA — Protótipo Navegável</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --blue:   #00d4ff;
+      --green:  #00ff88;
+      --orange: #ff6b35;
+      --red:    #ff4444;
+      --purple: #a78bfa;
+      --yellow: #fbbf24;
+      --bg:     #060a14;
+      --card:          rgba(255,255,255,0.05);
+      --card-blue:     rgba(0,212,255,0.07);
+      --card-green:    rgba(0,255,136,0.07);
+      --card-red:      rgba(255,68,68,0.08);
+      --card-orange:   rgba(255,107,53,0.07);
+      --border:        rgba(255,255,255,0.08);
+      --border-blue:   rgba(0,212,255,0.22);
+      --border-green:  rgba(0,255,136,0.22);
+      --border-red:    rgba(255,68,68,0.22);
+      --border-orange: rgba(255,107,53,0.22);
+      --muted: rgba(255,255,255,0.45);
+      --semi:  rgba(255,255,255,0.75);
+    }
+
+    body {
+      font-family: 'Inter', 'Segoe UI', sans-serif;
+      background: radial-gradient(ellipse at 30% 30%, #091833 0%, #0a0a14 70%);
+      color: #fff;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      background-image:
+        radial-gradient(1px 1px at 10% 15%, rgba(255,255,255,.7) 0%, transparent 100%),
+        radial-gradient(1px 1px at 25% 50%, rgba(255,255,255,.5) 0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 40% 10%, rgba(255,255,255,.8) 0%, transparent 100%),
+        radial-gradient(1px 1px at 60% 75%, rgba(255,255,255,.4) 0%, transparent 100%),
+        radial-gradient(1px 1px at 75% 25%, rgba(255,255,255,.65) 0%, transparent 100%),
+        radial-gradient(1px 1px at 88% 60%, rgba(255,255,255,.55) 0%, transparent 100%),
+        radial-gradient(1px 1px at 5% 80%,  rgba(200,220,255,.5) 0%, transparent 100%),
+        radial-gradient(1px 1px at 50% 40%, rgba(200,220,255,.4) 0%, transparent 100%),
+        radial-gradient(1px 1px at 95% 15%, rgba(200,220,255,.6) 0%, transparent 100%);
+      pointer-events: none; z-index: 0;
+    }
+
+    /* ── PHONE FRAME ── */
+    .phone-frame {
+      position: relative; z-index: 1;
+      width: 390px; height: 844px;
+      background: #070d1c;
+      border-radius: 48px;
+      border: 2px solid rgba(0,212,255,0.25);
+      overflow: hidden;
+      box-shadow: 0 0 0 1px rgba(0,212,255,0.08),
+                  0 0 80px rgba(0,212,255,0.08),
+                  0 40px 100px rgba(0,0,0,0.6);
+    }
+
+    .dynamic-island {
+      position: absolute;
+      top: 12px; left: 50%; transform: translateX(-50%);
+      width: 120px; height: 32px;
+      background: #000; border-radius: 20px; z-index: 200;
+    }
+
+    .status-bar {
+      position: absolute; top: 0; left: 0; right: 0;
+      height: 52px;
+      display: flex; align-items: flex-end; justify-content: space-between;
+      padding: 0 28px 8px;
+      font-size: 13px; font-weight: 600;
+      z-index: 150;
+      background: linear-gradient(180deg, rgba(7,13,28,1) 50%, transparent);
+      pointer-events: none;
+    }
+
+    /* ── SCREENS ── */
+    .screens-wrapper { position: absolute; inset: 0; overflow: hidden; }
+
+    .screen {
+      position: absolute; inset: 0;
+      overflow-y: auto; overflow-x: hidden;
+      background: var(--bg);
+      display: none;
+      padding: 60px 16px 76px;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+    .screen::-webkit-scrollbar { display: none; }
+    .screen.active { display: block; }
+
+    /* ── BOTTOM NAV ── */
+    .bottom-nav {
+      position: absolute; bottom: 0; left: 0; right: 0;
+      height: 76px;
+      background: rgba(5,9,20,0.97);
+      backdrop-filter: blur(20px);
+      border-top: 1px solid var(--border);
+      display: flex; z-index: 150;
+      padding-bottom: 8px;
+    }
+
+    .nav-item {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 3px;
+      cursor: pointer; transition: transform 0.1s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .nav-item:active { transform: scale(0.92); }
+    .nav-ico  { font-size: 22px; line-height: 1; }
+    .nav-lbl  { font-size: 10px; font-weight: 500; color: var(--muted); transition: color 0.15s; }
+    .nav-item.active .nav-lbl { color: var(--blue); font-weight: 600; }
+
+    /* ── COMMON COMPONENTS ── */
+    .screen-header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 18px;
+    }
+    .screen-title { font-size: 20px; font-weight: 700; }
+
+    .back-btn {
+      width: 36px; height: 36px;
+      background: var(--card); border: 1px solid var(--border); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; cursor: pointer; flex-shrink: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .badge {
+      display: inline-flex; align-items: center;
+      padding: 3px 10px; border-radius: 20px;
+      font-size: 10px; font-weight: 700;
+      letter-spacing: 0.5px; text-transform: uppercase;
+    }
+    .badge-blue   { background: rgba(0,212,255,.15);  color: var(--blue); }
+    .badge-green  { background: rgba(0,255,136,.15);  color: var(--green); }
+    .badge-orange { background: rgba(255,107,53,.15); color: var(--orange); }
+    .badge-red    { background: rgba(255,68,68,.15);  color: var(--red); }
+
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 14px 16px; margin-bottom: 10px;
+    }
+    .card-blue   { background: var(--card-blue);   border-color: var(--border-blue); }
+    .card-green  { background: var(--card-green);  border-color: var(--border-green); }
+    .card-red    { background: var(--card-red);    border-color: var(--border-red); }
+    .card-orange { background: rgba(255,140,0,.07); border-color: rgba(255,140,0,.2); }
+
+    .sec-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.8px;
+      text-transform: uppercase; color: var(--muted);
+      margin-bottom: 8px; margin-top: 14px;
+    }
+
+    .row { display: flex; align-items: center; justify-content: space-between; }
+
+    .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .dot-red    { background: var(--red);    box-shadow: 0 0 6px var(--red); }
+    .dot-orange { background: #ff8c00;       box-shadow: 0 0 6px #ff8c00; }
+    .dot-green  { background: var(--green);  box-shadow: 0 0 6px var(--green); }
+    .dot-blue   { background: var(--blue);   box-shadow: 0 0 6px var(--blue); }
+
+    .divider { height: 1px; background: var(--border); margin: 12px 0; }
+
+    .btn {
+      width: 100%; padding: 14px; border: none; border-radius: 14px;
+      color: #fff; font-size: 14px; font-weight: 700; cursor: pointer;
+      letter-spacing: 0.5px; transition: opacity 0.15s;
+      font-family: 'Inter', sans-serif; display: block; text-align: center;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn:active { opacity: 0.82; }
+    .btn-blue  { background: linear-gradient(135deg, var(--blue), #0066cc); }
+    .btn-red   { background: linear-gradient(135deg, var(--red),  #cc2200); }
+    .btn-green { background: linear-gradient(135deg, var(--green), #006633); color: #000; }
+
+    .text-muted  { color: var(--muted); }
+    .text-blue   { color: var(--blue); }
+    .text-green  { color: var(--green); }
+    .text-red    { color: var(--red); }
+    .text-orange { color: #ff8c00; }
+
+    /* ── MAP ── */
+    .map-box {
+      border-radius: 14px;
+      background: linear-gradient(150deg, #0b2318, #0a1c2a);
+      position: relative; overflow: hidden; margin-bottom: 10px;
+    }
+    .map-grid {
+      position: absolute; inset: 0;
+      background-image:
+        linear-gradient(rgba(0,212,255,.06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,212,255,.06) 1px, transparent 1px);
+      background-size: 30px 30px;
+    }
+    .mp { position: absolute; width: 14px; height: 14px; border-radius: 50%; border: 2px solid; }
+    .mp-r { background: rgba(255,68,68,.4);  border-color: var(--red); }
+    .mp-o { background: rgba(255,140,0,.35); border-color: #ff8c00; }
+    .mp-b { background: rgba(0,212,255,.3);  border-color: var(--blue); }
+    .mp-g { background: rgba(0,255,136,.3);  border-color: var(--green); }
+    .map-leg { position: absolute; bottom: 8px; left: 10px; display: flex; gap: 10px; }
+    .map-leg-i { display: flex; align-items: center; gap: 4px; font-size: 9px; color: var(--muted); }
+    .map-leg-i::before { content:''; width:6px; height:6px; border-radius:50%; }
+    .map-leg-i.r::before { background: var(--red); }
+    .map-leg-i.o::before { background: #ff8c00; }
+    .map-leg-i.g::before { background: var(--green); }
+
+    /* ── PROGRESS ── */
+    .prog-bar { height: 6px; background: rgba(255,255,255,.1); border-radius: 3px; margin: 8px 0 4px; overflow: hidden; }
+    .prog-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--red), var(--orange)); }
+
+    /* ── SCREEN 1 — SPLASH ── */
+    #s-splash {
+      display: flex; padding: 0;
+      background: radial-gradient(ellipse at 30% 40%, #091833 0%, #04060d 70%);
+    }
+    .splash-inner {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 40px; gap: 14px;
+    }
+    .splash-icon {
+      width: 84px; height: 84px; border-radius: 22px;
+      background: linear-gradient(135deg, var(--blue), var(--green));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 42px; margin-bottom: 6px;
+      animation: pulse 2s ease-in-out infinite;
+    }
+    @keyframes pulse {
+      0%,100% { box-shadow: 0 0 0 0   rgba(0,212,255,0.3); }
+      50%      { box-shadow: 0 0 0 24px rgba(0,212,255,0); }
+    }
+    .splash-title {
+      font-size: 38px; font-weight: 900; letter-spacing: 5px;
+      background: linear-gradient(135deg, var(--blue), var(--green));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+    .splash-sub { font-size: 13px; color: var(--muted); text-align: center; line-height: 1.55; }
+    .splash-loader { width: 160px; height: 3px; background: rgba(255,255,255,.1); border-radius: 2px; margin-top: 28px; overflow: hidden; }
+    .loader-bar { height: 100%; background: linear-gradient(90deg, var(--blue), var(--green)); border-radius: 2px; animation: loading 2.1s ease forwards; }
+    @keyframes loading { from { width: 0; } to { width: 100%; } }
+    .splash-hint { font-size: 11px; color: var(--muted); }
+
+    /* ── SCREEN 2 — LOGIN ── */
+    .login-logo { display: flex; align-items: center; gap: 10px; margin-bottom: 30px; }
+    .login-ico {
+      width: 44px; height: 44px; border-radius: 12px;
+      background: linear-gradient(135deg, var(--blue), var(--green));
+      display: flex; align-items: center; justify-content: center; font-size: 22px;
+    }
+    .login-name { font-size: 18px; font-weight: 800; letter-spacing: 2px; color: var(--blue); }
+    .login-title { font-size: 24px; font-weight: 800; margin-bottom: 6px; }
+    .login-sub   { font-size: 13px; color: var(--muted); margin-bottom: 26px; line-height: 1.5; }
+    .btn-google {
+      width: 100%; padding: 14px; background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; color: #fff; font-size: 14px; font-weight: 600; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 12px;
+      font-family: 'Inter', sans-serif; transition: background 0.15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .btn-google:active { background: rgba(255,255,255,.08); }
+    .sep { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .sep::before, .sep::after { content:''; flex:1; height:1px; background: var(--border); }
+    .sep span { font-size: 12px; color: var(--muted); }
+    .inp {
+      width: 100%; padding: 13px 16px; background: var(--card);
+      border: 1px solid var(--border); border-radius: 12px;
+      color: #fff; font-size: 14px; margin-bottom: 10px;
+      font-family: 'Inter', sans-serif; outline: none;
+    }
+    .inp:focus { border-color: var(--blue); }
+    .inp::placeholder { color: var(--muted); }
+    .login-foot { text-align: center; margin-top: 16px; font-size: 13px; color: var(--muted); }
+    .login-foot a { color: var(--blue); cursor: pointer; font-weight: 600; }
+
+    /* ── SCREEN 3 — DASHBOARD ── */
+    .greet-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+    .greet-name { font-size: 18px; font-weight: 700; }
+    .greet-date { font-size: 11px; color: var(--muted); }
+    .avatar {
+      width: 40px; height: 40px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--blue), var(--green));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 700; color: #000; flex-shrink: 0;
+    }
+    .risk-banner {
+      border-radius: 16px; padding: 14px 16px; margin-bottom: 12px;
+      background: rgba(255,140,0,0.09); border: 1px solid rgba(255,140,0,0.22);
+      display: flex; align-items: center; justify-content: space-between; cursor: pointer;
+    }
+    .risk-banner:active { opacity: 0.85; }
+    .risk-title { font-size: 14px; font-weight: 700; color: #ff8c00; }
+    .risk-sub   { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .inc-card { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
+    .inc-card:active { opacity: 0.85; }
+    .inc-info { flex: 1; }
+    .inc-title { font-size: 13px; font-weight: 700; }
+    .inc-sub   { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .inc-time  { font-size: 10px; color: var(--muted); }
+
+    /* ── SCREEN 4 — MAP ── */
+    .map-full { height: 280px; cursor: pointer; }
+    .layer-row { display: flex; gap: 8px; margin-bottom: 10px; }
+    .layer-btn {
+      flex: 1; padding: 8px; background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; font-size: 11px; font-weight: 600;
+      text-align: center; color: var(--muted); cursor: pointer;
+    }
+    .layer-btn.active { background: var(--card-blue); border-color: var(--border-blue); color: var(--blue); }
+
+    /* ── SCREEN 5 — ALERT DETAIL ── */
+    .alert-head { text-align: center; padding: 20px; border-radius: 16px; margin-bottom: 12px; }
+    .alert-ico  { font-size: 44px; margin-bottom: 8px; display: block; }
+    .alert-type { font-size: 16px; font-weight: 800; }
+    .alert-loc  { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .prob-row   { display: flex; justify-content: space-between; font-size: 12px; }
+
+    /* ── SCREEN 6 — ALERTS LIST ── */
+    .filter-tabs { display: flex; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 4px; margin-bottom: 14px; }
+    .filter-tab { flex: 1; padding: 8px; border-radius: 8px; font-size: 12px; font-weight: 600; text-align: center; color: var(--muted); cursor: pointer; }
+    .filter-tab.active { background: var(--blue); color: #000; }
+
+    /* ── SCREEN 7 — REPORT ── */
+    .type-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+    .type-btn {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 16px 8px; text-align: center; cursor: pointer; transition: all 0.15s;
+    }
+    .type-btn.active { background: var(--card-blue); border-color: var(--border-blue); }
+    .type-icon  { font-size: 28px; margin-bottom: 6px; }
+    .type-label { font-size: 12px; font-weight: 600; }
+    .level-row { display: flex; gap: 8px; margin-bottom: 10px; }
+    .level-btn {
+      flex: 1; padding: 10px; background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; font-size: 12px; font-weight: 600; text-align: center; color: var(--muted); cursor: pointer;
+    }
+    .lv-low    { background: var(--card-green);  border-color: var(--border-green);  color: var(--green); }
+    .lv-med    { background: rgba(255,140,0,.1); border-color: rgba(255,140,0,.2);  color: #ff8c00; }
+    .lv-high   { background: var(--card-red);    border-color: var(--border-red);    color: var(--red); }
+    .photo-card {
+      border: 1px dashed var(--border); border-radius: 14px;
+      padding: 24px; text-align: center; margin-bottom: 12px; background: var(--card); cursor: pointer;
+    }
+    .photo-ico { font-size: 32px; margin-bottom: 8px; }
+
+    /* ── SCREEN 8 — CONFIRM ── */
+    .confirm-wrap { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 16px 0; }
+    .confirm-ico {
+      width: 80px; height: 80px; border-radius: 50%;
+      background: rgba(0,255,136,0.1); border: 2px solid rgba(0,255,136,0.3);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 40px; margin-bottom: 20px;
+      animation: scaleIn 0.4s ease;
+    }
+    @keyframes scaleIn { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+    .confirm-title { font-size: 22px; font-weight: 800; margin-bottom: 8px; }
+    .confirm-sub   { font-size: 14px; color: var(--muted); line-height: 1.6; margin-bottom: 24px; }
+
+    /* ── SCREEN 9 — HISTORY ── */
+    .bars { display: flex; align-items: flex-end; gap: 6px; height: 60px; margin-bottom: 14px; }
+    .bar  { flex: 1; border-radius: 3px 3px 0 0; min-height: 4px; }
+    .bar-b { background: linear-gradient(180deg, var(--blue),   rgba(0,212,255,.25)); }
+    .bar-o { background: linear-gradient(180deg, var(--orange), rgba(255,107,53,.25)); }
+    .bar-r { background: linear-gradient(180deg, var(--red),    rgba(255,68,68,.25)); }
+
+    /* ── SCREEN 10 — SHELTER ── */
+    .shelter-map { height: 180px; border-radius: 16px; background: linear-gradient(150deg,#0b2318,#0a1c2a); position: relative; overflow: hidden; margin-bottom: 14px; }
+    .shelter-pin { position: absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:20px; height:20px; border-radius:50%; background: var(--green); box-shadow: 0 0 20px rgba(0,255,136,.5); }
+
+    /* ── SCREEN 11 — PROFILE ── */
+    .prof-head { text-align: center; padding: 8px 0 20px; }
+    .prof-avatar {
+      width: 72px; height: 72px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--blue), var(--green));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px; font-weight: 700; color: #000;
+      margin: 0 auto 12px;
+    }
+    .prof-name { font-size: 20px; font-weight: 700; }
+    .prof-city { font-size: 13px; color: var(--muted); margin-top: 2px; }
+    .toggle { width: 44px; height: 24px; border-radius: 12px; position: relative; cursor: pointer; flex-shrink: 0; }
+    .t-on  { background: var(--green); }
+    .t-off { background: rgba(255,255,255,0.15); }
+    .toggle::after { content:''; position: absolute; width:18px; height:18px; border-radius:50%; background:#fff; top:3px; transition: left 0.2s; }
+    .t-on::after  { left: calc(100% - 21px); }
+    .t-off::after { left: 3px; }
+
+    /* ── SCREEN 12 — SETTINGS ── */
+    .set-item { display: flex; align-items: center; gap: 14px; padding: 14px 16px; background: var(--card); border: 1px solid var(--border); border-radius: 14px; margin-bottom: 8px; cursor: pointer; }
+    .set-ico { width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
+    .set-lbl { font-size: 14px; font-weight: 600; flex: 1; }
+    .set-arr { color: var(--muted); font-size: 14px; }
+
+    /* ── DESKTOP HINT ── */
+    .desktop-hint {
+      position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+      background: rgba(0,0,0,0.75); border: 1px solid var(--border);
+      border-radius: 20px; padding: 8px 18px;
+      font-size: 11px; color: var(--muted); white-space: nowrap; z-index: 10;
+    }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 430px) {
+      body { display: block; background: var(--bg); overflow: auto; padding: 0; }
+      body::before { display: none; }
+      .phone-frame { width: 100%; height: 100dvh; border-radius: 0; border: none; box-shadow: none; }
+      .desktop-hint { display: none; }
+    }
+    @media (max-height: 900px) and (min-width: 431px) {
+      .phone-frame { transform: scale(0.87); transform-origin: center center; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="phone-frame" id="phoneFrame">
+  <div class="dynamic-island"></div>
+
+  <div class="status-bar">
+    <span>09:41</span>
+    <span style="font-size:16px">📶&nbsp;🔋</span>
+  </div>
+
+  <div class="screens-wrapper">
+
+    <!-- ══ TELA 1: SPLASH ══ -->
+    <div id="s-splash" class="screen active" style="display:flex;padding:0;background:radial-gradient(ellipse at 30% 40%,#091833 0%,#04060d 70%);">
+      <div class="splash-inner">
+        <div class="splash-icon">🛰️</div>
+        <h1 class="splash-title">SENTINELA</h1>
+        <p class="splash-sub">Sistema Espacial de Monitoramento<br>e Notificação de Riscos com IA</p>
+        <div class="splash-loader"><div class="loader-bar"></div></div>
+        <p class="splash-hint">Carregando dados de satélite...</p>
+      </div>
+    </div>
+
+    <!-- ══ TELA 2: LOGIN ══ -->
+    <div id="s-login" class="screen" style="padding-top:70px;">
+      <div class="login-logo">
+        <div class="login-ico">🛰️</div>
+        <span class="login-name">SENTINELA</span>
+      </div>
+      <h2 class="login-title">Bem-vindo de volta</h2>
+      <p class="login-sub">Faça login para receber alertas personalizados para sua região</p>
+      <button class="btn-google" onclick="goTo('dashboard')">
+        <span>🔵</span> Continuar com Google
+      </button>
+      <div class="sep"><span>ou</span></div>
+      <input class="inp" type="email" placeholder="E-mail" autocomplete="off">
+      <input class="inp" type="password" placeholder="Senha">
+      <button class="btn btn-blue" style="margin-top:4px;" onclick="goTo('dashboard')">Entrar</button>
+      <p class="login-foot">Não tem conta? <a onclick="goTo('dashboard')">Criar conta grátis</a></p>
+    </div>
+
+    <!-- ══ TELA 3: DASHBOARD ══ -->
+    <div id="s-dashboard" class="screen">
+      <div class="greet-row">
+        <div>
+          <p class="greet-name">Bom dia, Gustavo</p>
+          <p class="greet-date">São Paulo, SP &middot; Seg 8 Jun</p>
+        </div>
+        <div class="avatar">G</div>
+      </div>
+
+      <div class="risk-banner" onclick="goTo('alert-detail')">
+        <div>
+          <p class="risk-title">⚠ RISCO MODERADO</p>
+          <p class="risk-sub">Zona Sul &middot; Próximas 24h</p>
+        </div>
+        <span class="badge badge-orange">ATENÇÃO</span>
+      </div>
+
+      <div class="map-box" style="height:140px;cursor:pointer;" onclick="goTo('map')">
+        <div class="map-grid"></div>
+        <div class="mp mp-r" style="top:38px;left:80px;"></div>
+        <div class="mp mp-o" style="top:72px;right:65px;"></div>
+        <div class="mp mp-b" style="top:22px;right:44px;"></div>
+        <div class="mp mp-g" style="bottom:22px;left:44px;"></div>
+        <p style="position:absolute;bottom:8px;right:10px;font-size:9px;color:var(--muted);">Mapa ao vivo</p>
+      </div>
+
+      <p class="sec-label" style="margin-top:0;">Incidentes ativos</p>
+
+      <div class="card inc-card" onclick="goTo('alert-detail')">
+        <div class="dot dot-red" style="margin-top:3px;"></div>
+        <div class="inc-info">
+          <p class="inc-title">Enchente — Alto</p>
+          <p class="inc-sub">Ribeirão Pires &middot; Evacuação em curso</p>
+        </div>
+        <p class="inc-time">1h atrás</p>
+      </div>
+
+      <div class="card inc-card" onclick="goTo('alert-detail')">
+        <div class="dot dot-orange" style="margin-top:3px;"></div>
+        <div class="inc-info">
+          <p class="inc-title">Deslizamento — Médio</p>
+          <p class="inc-sub">Serra da Cantareira &middot; Monitorando</p>
+        </div>
+        <p class="inc-time">3h atrás</p>
+      </div>
+
+      <div class="card inc-card" style="opacity:.5;">
+        <div class="dot dot-green" style="margin-top:3px;"></div>
+        <div class="inc-info">
+          <p class="inc-title">Vento forte — Baixo</p>
+          <p class="inc-sub">Zona Leste &middot; Estável</p>
+        </div>
+        <p class="inc-time">6h atrás</p>
+      </div>
+    </div>
+
+    <!-- ══ TELA 4: MAPA SATELITAL ══ -->
+    <div id="s-map" class="screen">
+      <div class="screen-header">
+        <p class="screen-title">Mapa de Riscos</p>
+        <span class="badge badge-blue">AO VIVO</span>
+      </div>
+
+      <div class="map-box map-full" onclick="goTo('alert-detail')">
+        <div class="map-grid"></div>
+        <div class="mp mp-r" style="top:52px;left:72px;"></div>
+        <div class="mp mp-r" style="top:88px;left:112px;"></div>
+        <div class="mp mp-o" style="top:32px;right:52px;"></div>
+        <div class="mp mp-o" style="top:115px;right:82px;"></div>
+        <div class="mp mp-b" style="top:145px;left:52px;"></div>
+        <div class="mp mp-g" style="bottom:32px;right:44px;"></div>
+        <div class="mp mp-g" style="bottom:62px;left:92px;"></div>
+        <div class="map-leg">
+          <div class="map-leg-i r">Alto</div>
+          <div class="map-leg-i o">Médio</div>
+          <div class="map-leg-i g">Baixo</div>
+        </div>
+      </div>
+
+      <div class="layer-row">
+        <div class="layer-btn active" onclick="setLayer(this)">🌊 Enchentes</div>
+        <div class="layer-btn" onclick="setLayer(this)">⛰️ Deslizam.</div>
+        <div class="layer-btn" onclick="setLayer(this)">🔥 Incêndios</div>
+      </div>
+
+      <div class="card card-blue row">
+        <div>
+          <p style="font-size:13px;font-weight:700;color:var(--blue);">📍 Sua localização</p>
+          <p style="font-size:11px;color:var(--muted);margin-top:2px;">Zona Sul, SP &middot; Risco: Baixo</p>
+        </div>
+        <span class="badge badge-green">SEGURO</span>
+      </div>
+
+      <p class="sec-label">Alertas nesta área</p>
+      <div class="card inc-card" onclick="goTo('alert-detail')">
+        <div class="dot dot-red" style="margin-top:3px;"></div>
+        <div class="inc-info"><p class="inc-title">Enchente — Alto</p><p class="inc-sub">Ribeirão Pires</p></div>
+        <span class="badge badge-red">ATIVO</span>
+      </div>
+      <div class="card inc-card" onclick="goTo('alert-detail')">
+        <div class="dot dot-orange" style="margin-top:3px;"></div>
+        <div class="inc-info"><p class="inc-title">Deslizamento — Médio</p><p class="inc-sub">Cantareira</p></div>
+        <span class="badge badge-orange">ATIVO</span>
+      </div>
+    </div>
+
+    <!-- ══ TELA 5: DETALHE DO ALERTA ══ -->
+    <div id="s-alert-detail" class="screen">
+      <div class="screen-header">
+        <div class="back-btn" onclick="goBack()">←</div>
+        <p class="screen-title">Detalhe do Alerta</p>
+        <div style="width:36px;"></div>
+      </div>
+
+      <div class="card card-red alert-head">
+        <span class="alert-ico">🌊</span>
+        <p class="alert-type text-red">RISCO ALTO &middot; ENCHENTE</p>
+        <p class="alert-loc">Ribeirão Pires &middot; SP</p>
+      </div>
+
+      <div class="card">
+        <p style="font-size:13px;font-weight:700;margin-bottom:10px;">📊 Previsão IA</p>
+        <div class="prob-row">
+          <span class="text-muted">Prob. enchente 6h</span>
+          <span style="font-weight:700;color:var(--red);">87%</span>
+        </div>
+        <div class="prog-bar"><div class="prog-fill" style="width:87%;"></div></div>
+        <div class="prob-row" style="margin-top:8px;">
+          <span class="text-muted">Nível do rio</span>
+          <span style="font-weight:700;color:var(--orange);">+2,3m acima</span>
+        </div>
+        <div class="prog-bar"><div class="prog-fill" style="width:72%;background:linear-gradient(90deg,var(--orange),var(--yellow));"></div></div>
+      </div>
+
+      <div class="card">
+        <p style="font-size:13px;font-weight:700;margin-bottom:6px;">🛣️ Rota de Evacuação</p>
+        <p style="font-size:12px;color:var(--muted);line-height:1.5;">Av. Cap. Mário Toledo &rarr; Abrigo Municipal Jd. Aliança</p>
+      </div>
+
+      <div class="card card-green row" onclick="goTo('shelter')" style="cursor:pointer;">
+        <div>
+          <p style="font-size:13px;font-weight:700;color:var(--green);">🏥 Abrigo mais próximo</p>
+          <p style="font-size:11px;color:var(--muted);margin-top:3px;">Escola Est. João de Deus &middot; 320 vagas</p>
+        </div>
+        <span style="font-size:13px;font-weight:700;color:var(--green);">1,2 km</span>
+      </div>
+
+      <button class="btn btn-red" style="margin-top:4px;" onclick="shareAlert()">🚨 COMPARTILHAR ALERTA</button>
+    </div>
+
+    <!-- ══ TELA 6: LISTA DE ALERTAS ══ -->
+    <div id="s-alerts" class="screen">
+      <div class="screen-header">
+        <p class="screen-title">Alertas</p>
+        <button style="background:none;border:none;font-size:26px;cursor:pointer;color:var(--blue);line-height:1;" onclick="goTo('report')">+</button>
+      </div>
+
+      <div class="filter-tabs">
+        <div class="filter-tab active" onclick="setFilter(this)">Todos</div>
+        <div class="filter-tab" onclick="setFilter(this)">Ativos</div>
+        <div class="filter-tab" onclick="setFilter(this)">Resolvidos</div>
+      </div>
+
+      <div class="card inc-card" onclick="goTo('alert-detail')">
+        <div class="dot dot-red" style="margin-top:3px;"></div>
+        <div class="inc-info"><p class="inc-title">Enchente — Alto</p><p class="inc-sub">Ribeirão Pires &middot; 08 Jun &middot; Evacuação em curso</p></div>
+        <span class="badge badge-red">ATIVO</span>
+      </div>
+      <div class="card inc-card" onclick="goTo('alert-detail')">
+        <div class="dot dot-orange" style="margin-top:3px;"></div>
+        <div class="inc-info"><p class="inc-title">Deslizamento — Médio</p><p class="inc-sub">Serra da Cantareira &middot; 08 Jun</p></div>
+        <span class="badge badge-orange">ATIVO</span>
+      </div>
+      <div class="card inc-card">
+        <div class="dot dot-green" style="margin-top:3px;"></div>
+        <div class="inc-info"><p class="inc-title">Vento forte — Baixo</p><p class="inc-sub">Zona Leste &middot; 07 Jun</p></div>
+        <span class="badge badge-green">ESTÁVEL</span>
+      </div>
+      <div class="card inc-card" style="opacity:.55;" onclick="goTo('alert-detail')">
+        <div class="dot dot-blue" style="margin-top:3px;"></div>
+        <div class="inc-info"><p class="inc-title">Enchente — Alto</p><p class="inc-sub">Ribeirão Pires &middot; 04 Jun</p></div>
+        <span class="badge badge-blue">RESOLVIDO</span>
+      </div>
+      <div class="card inc-card" style="opacity:.55;" onclick="goTo('alert-detail')">
+        <div class="dot dot-blue" style="margin-top:3px;"></div>
+        <div class="inc-info"><p class="inc-title">Deslizamento — Médio</p><p class="inc-sub">Cantareira &middot; 01 Jun</p></div>
+        <span class="badge badge-blue">RESOLVIDO</span>
+      </div>
+    </div>
+
+    <!-- ══ TELA 7: RELATAR OCORRÊNCIA ══ -->
+    <div id="s-report" class="screen">
+      <div class="screen-header">
+        <p class="screen-title">Relatar Ocorrência</p>
+        <div class="back-btn" onclick="goBack()">✕</div>
+      </div>
+
+      <p class="sec-label" style="margin-top:0;">Tipo de Ocorrência</p>
+      <div class="type-grid">
+        <div class="type-btn active" onclick="selType(this)">
+          <div class="type-icon">🌊</div><div class="type-label text-blue">Enchente</div>
+        </div>
+        <div class="type-btn" onclick="selType(this)">
+          <div class="type-icon">⛰️</div><div class="type-label">Deslizamento</div>
+        </div>
+        <div class="type-btn" onclick="selType(this)">
+          <div class="type-icon">🔥</div><div class="type-label">Incêndio</div>
+        </div>
+        <div class="type-btn" onclick="selType(this)">
+          <div class="type-icon">💨</div><div class="type-label">Vendaval</div>
+        </div>
+      </div>
+
+      <p class="sec-label">Nível de Urgência</p>
+      <div class="level-row">
+        <div class="level-btn" onclick="selLevel(this,'low')">Baixo</div>
+        <div class="level-btn lv-med" onclick="selLevel(this,'med')">Médio</div>
+        <div class="level-btn" onclick="selLevel(this,'high')">Alto</div>
+      </div>
+
+      <div class="photo-card" id="photoCard" onclick="onPhoto()">
+        <div class="photo-ico">📷</div>
+        <p style="font-size:13px;color:var(--muted);">Tirar foto ou carregar da galeria</p>
+      </div>
+
+      <button class="btn btn-blue" onclick="goTo('report-confirm')">📍 ENVIAR COM LOCALIZAÇÃO</button>
+    </div>
+
+    <!-- ══ TELA 8: CONFIRMAÇÃO ══ -->
+    <div id="s-report-confirm" class="screen">
+      <div class="confirm-wrap">
+        <div class="confirm-ico">✅</div>
+        <h2 class="confirm-title">Ocorrência Relatada!</h2>
+        <p class="confirm-sub">Nossa IA está analisando o relato.<br>Você receberá uma notificação quando for validado e publicado.</p>
+
+        <div class="card" style="width:100%;margin-bottom:10px;">
+          <p style="font-size:11px;color:var(--muted);margin-bottom:4px;">PROTOCOLO</p>
+          <p style="font-size:15px;font-weight:700;color:var(--blue);">#SENT-2026-08061</p>
+        </div>
+
+        <div class="card card-blue" style="width:100%;margin-bottom:24px;">
+          <p style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:4px;">🛰️ Dados enviados ao satélite</p>
+          <p style="font-size:11px;color:var(--muted);">Localização + foto + tipo + urgência</p>
+        </div>
+
+        <button class="btn btn-blue" style="width:100%;" onclick="goTo('dashboard')">Voltar ao Início</button>
+      </div>
+    </div>
+
+    <!-- ══ TELA 9: HISTÓRICO ══ -->
+    <div id="s-history" class="screen">
+      <div class="screen-header">
+        <p class="screen-title">Histórico</p>
+        <span class="badge badge-blue">Jun 2026</span>
+      </div>
+
+      <p class="sec-label" style="margin-top:0;">Alertas este mês</p>
+      <div class="bars">
+        <div class="bar bar-b" style="height:55%;"></div>
+        <div class="bar bar-o" style="height:80%;"></div>
+        <div class="bar bar-b" style="height:40%;"></div>
+        <div class="bar bar-r" style="height:95%;"></div>
+        <div class="bar bar-o" style="height:60%;"></div>
+        <div class="bar bar-b" style="height:35%;"></div>
+        <div class="bar bar-b" style="height:70%;"></div>
+        <div class="bar bar-b" style="height:45%;"></div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="card inc-card" onclick="goTo('alert-detail')">
+        <div class="dot dot-red" style="margin-top:3px;"></div>
+        <div class="inc-info"><p class="inc-title">Enchente &middot; Alto</p><p class="inc-sub">04 Jun &middot; Ribeirão Pires</p></div>
+        <span class="badge badge-blue">Resolvido</span>
+      </div>
+      <div class="card inc-card" onclick="goTo('alert-detail')">
+        <div class="dot dot-orange" style="margin-top:3px;"></div>
+        <div class="inc-info"><p class="inc-title">Deslizamento &middot; Médio</p><p class="inc-sub">01 Jun &middot; Cantareira</p></div>
+        <span class="badge badge-blue">Resolvido</span>
+      </div>
+      <div class="card inc-card">
+        <div class="dot dot-green" style="margin-top:3px;"></div>
+        <div class="inc-info"><p class="inc-title">Vento forte &middot; Baixo</p><p class="inc-sub">28 Mai &middot; Zona Leste</p></div>
+        <span class="badge badge-green">Normal</span>
+      </div>
+      <div class="card inc-card" style="opacity:.6;">
+        <div class="dot dot-blue" style="margin-top:3px;"></div>
+        <div class="inc-info"><p class="inc-title">Seca &middot; Médio</p><p class="inc-sub">20 Mai &middot; Interior SP</p></div>
+        <span class="badge badge-blue">Resolvido</span>
+      </div>
+    </div>
+
+    <!-- ══ TELA 10: DETALHES DO ABRIGO ══ -->
+    <div id="s-shelter" class="screen">
+      <div class="screen-header">
+        <div class="back-btn" onclick="goBack()">←</div>
+        <p class="screen-title">Detalhes do Abrigo</p>
+        <div style="width:36px;"></div>
+      </div>
+
+      <div class="shelter-map">
+        <div class="map-grid"></div>
+        <div class="shelter-pin"></div>
+        <p style="position:absolute;bottom:8px;right:10px;font-size:9px;color:var(--muted);">Escola Est. João de Deus</p>
+      </div>
+
+      <div class="card card-green">
+        <p style="font-size:16px;font-weight:700;color:var(--green);margin-bottom:4px;">🏥 Escola Est. João de Deus</p>
+        <p style="font-size:12px;color:var(--muted);">R. das Palmeiras, 400 &middot; Ribeirão Pires, SP</p>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px;">
+        <div class="card" style="text-align:center;padding:12px 8px;">
+          <p style="font-size:22px;font-weight:800;color:var(--blue);">320</p>
+          <p style="font-size:10px;color:var(--muted);">vagas</p>
+        </div>
+        <div class="card" style="text-align:center;padding:12px 8px;">
+          <p style="font-size:22px;font-weight:800;color:var(--green);">187</p>
+          <p style="font-size:10px;color:var(--muted);">ocupadas</p>
+        </div>
+        <div class="card" style="text-align:center;padding:12px 8px;">
+          <p style="font-size:16px;font-weight:800;color:var(--blue);">1,2km</p>
+          <p style="font-size:10px;color:var(--muted);">distância</p>
+        </div>
+      </div>
+
+      <p class="sec-label">Recursos disponíveis</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;">
+        <span class="badge badge-blue">🍽️ Alimentação</span>
+        <span class="badge badge-blue">💧 Água</span>
+        <span class="badge badge-green">🏥 Médico</span>
+        <span class="badge badge-blue">🔌 Energia</span>
+        <span class="badge badge-blue">📶 Wi-Fi</span>
+      </div>
+
+      <button class="btn btn-green">🗺️ TRAÇAR ROTA ATÉ AQUI</button>
+    </div>
+
+    <!-- ══ TELA 11: PERFIL ══ -->
+    <div id="s-profile" class="screen">
+      <div class="prof-head">
+        <div class="prof-avatar">G</div>
+        <p class="prof-name">Gustavo Yuri</p>
+        <p class="prof-city">São Paulo, SP</p>
+      </div>
+
+      <p class="sec-label" style="margin-top:0;">Minha Localização Salva</p>
+      <div class="card card-blue">
+        <p style="font-size:13px;font-weight:700;color:var(--blue);">📍 Casa</p>
+        <p style="font-size:11px;color:var(--muted);margin-top:3px;">R. das Flores, 123 &middot; Zona Sul, SP</p>
+      </div>
+      <div class="card" style="cursor:pointer;">
+        <p style="font-size:13px;color:var(--muted);text-align:center;">+ Adicionar localização</p>
+      </div>
+
+      <div class="divider"></div>
+
+      <p class="sec-label">Notificações</p>
+      <div class="card" style="margin-bottom:8px;">
+        <div class="row"><p style="font-size:14px;">🔔 Alertas de risco</p><div class="toggle t-on"></div></div>
+      </div>
+      <div class="card" style="margin-bottom:8px;">
+        <div class="row"><p style="font-size:14px;">📡 Via satélite</p><div class="toggle t-on"></div></div>
+      </div>
+      <div class="card" style="margin-bottom:8px;">
+        <div class="row"><p style="font-size:14px;">📰 Boletins diários</p>
+          <div class="toggle t-off" id="toggleBoletins" onclick="toggleSwitch('toggleBoletins')"></div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="card" style="cursor:pointer;margin-bottom:8px;" onclick="goTo('settings')">
+        <div class="row"><p style="font-size:14px;font-weight:600;">⚙️ Configurações</p><p style="color:var(--muted);">›</p></div>
+      </div>
+      <div class="card" style="cursor:pointer;" onclick="navigate('history')">
+        <div class="row"><p style="font-size:14px;font-weight:600;">📊 Meu Histórico</p><p style="color:var(--muted);">›</p></div>
+      </div>
+    </div>
+
+    <!-- ══ TELA 12: CONFIGURAÇÕES ══ -->
+    <div id="s-settings" class="screen">
+      <div class="screen-header">
+        <div class="back-btn" onclick="goBack()">←</div>
+        <p class="screen-title">Configurações</p>
+        <div style="width:36px;"></div>
+      </div>
+
+      <p class="sec-label" style="margin-top:0;">Conta</p>
+      <div class="set-item"><div class="set-ico" style="background:rgba(0,212,255,.1);">👤</div><span class="set-lbl">Editar perfil</span><span class="set-arr">›</span></div>
+      <div class="set-item"><div class="set-ico" style="background:rgba(0,255,136,.1);">📍</div><span class="set-lbl">Localizações salvas</span><span class="set-arr">›</span></div>
+
+      <p class="sec-label">Notificações</p>
+      <div class="set-item"><div class="set-ico" style="background:rgba(255,107,53,.1);">🔔</div><span class="set-lbl">Preferências de alerta</span><span class="set-arr">›</span></div>
+      <div class="set-item"><div class="set-ico" style="background:rgba(0,212,255,.1);">📡</div><span class="set-lbl">Conectividade satelital</span><span class="set-arr">›</span></div>
+
+      <p class="sec-label">Aplicativo</p>
+      <div class="set-item"><div class="set-ico" style="background:rgba(167,139,250,.1);">🌍</div><span class="set-lbl">Idioma</span><span class="set-arr" style="font-size:12px;">Português ›</span></div>
+      <div class="set-item"><div class="set-ico" style="background:rgba(255,68,68,.1);">🔒</div><span class="set-lbl">Privacidade e dados</span><span class="set-arr">›</span></div>
+      <div class="set-item"><div class="set-ico" style="background:rgba(251,191,36,.1);">ℹ️</div><span class="set-lbl">Sobre o SENTINELA</span><span class="set-arr" style="font-size:12px;">v1.0.0 ›</span></div>
+
+      <div class="divider"></div>
+      <div class="set-item" style="border-color:var(--border-red);background:rgba(255,68,68,.04);" onclick="goTo('login')">
+        <div class="set-ico" style="background:rgba(255,68,68,.1);">🚪</div>
+        <span class="set-lbl text-red">Sair da conta</span>
+      </div>
+    </div>
+
+  </div><!-- /screens-wrapper -->
+
+  <!-- Bottom Nav -->
+  <nav class="bottom-nav" id="bottomNav">
+    <div class="nav-item active" id="nav-home" onclick="navigate('dashboard')">
+      <span class="nav-ico">🏠</span><span class="nav-lbl">Início</span>
+    </div>
+    <div class="nav-item" id="nav-map" onclick="navigate('map')">
+      <span class="nav-ico">🗺️</span><span class="nav-lbl">Mapa</span>
+    </div>
+    <div class="nav-item" id="nav-alerts" onclick="navigate('alerts')">
+      <span class="nav-ico">🔔</span><span class="nav-lbl">Alertas</span>
+    </div>
+    <div class="nav-item" id="nav-profile" onclick="navigate('profile')">
+      <span class="nav-ico">👤</span><span class="nav-lbl">Perfil</span>
+    </div>
+  </nav>
+
+</div><!-- /phone-frame -->
+
+<p class="desktop-hint">← → setas do teclado para navegar &nbsp;|&nbsp; clique nos elementos para interagir</p>
+
+<script>
+  // ── STATE ──
+  const HIDDEN_NAV = ['splash','login','alert-detail','report','report-confirm','shelter','settings'];
+  const NAV_MAP = { dashboard:'nav-home', map:'nav-map', alerts:'nav-alerts', profile:'nav-profile', history:'nav-profile' };
+  const SCREEN_ORDER = ['splash','login','dashboard','map','alert-detail','alerts','report','report-confirm','history','shelter','profile','settings'];
+
+  let stack = ['splash'];
+
+  // ── CORE NAVIGATION ──
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.style.display = 'none');
+    const el = document.getElementById('s-' + id);
+    if (!el) return;
+    el.style.display = 'block';
+    el.scrollTop = 0;
+
+    const nav = document.getElementById('bottomNav');
+    if (HIDDEN_NAV.includes(id)) {
+      nav.style.display = 'none';
+      el.style.paddingBottom = '20px';
+    } else {
+      nav.style.display = 'flex';
+      el.style.paddingBottom = '76px';
+      updateNav(id);
+    }
+  }
+
+  function goTo(id) {
+    if (stack[stack.length - 1] === id) return;
+    stack.push(id);
+    showScreen(id);
+  }
+
+  function navigate(id) {
+    stack = [id];
+    showScreen(id);
+  }
+
+  function goBack() {
+    if (stack.length <= 1) return;
+    stack.pop();
+    showScreen(stack[stack.length - 1]);
+  }
+
+  function updateNav(id) {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    if (NAV_MAP[id]) document.getElementById(NAV_MAP[id]).classList.add('active');
+  }
+
+  // ── INTERACTIONS ──
+  function setLayer(btn) {
+    btn.closest('.layer-row').querySelectorAll('.layer-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+
+  function setFilter(tab) {
+    tab.closest('.filter-tabs').querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+  }
+
+  function selType(btn) {
+    btn.closest('.type-grid').querySelectorAll('.type-btn').forEach(b => {
+      b.classList.remove('active');
+      b.querySelector('.type-label').className = 'type-label';
+    });
+    btn.classList.add('active');
+    btn.querySelector('.type-label').className = 'type-label text-blue';
+  }
+
+  function selLevel(btn, lv) {
+    btn.closest('.level-row').querySelectorAll('.level-btn').forEach(b => b.className = 'level-btn');
+    btn.classList.add('lv-' + lv);
+  }
+
+  function toggleSwitch(id) {
+    const el = document.getElementById(id);
+    if (el.classList.contains('t-on')) { el.classList.replace('t-on','t-off'); }
+    else { el.classList.replace('t-off','t-on'); }
+  }
+
+  function onPhoto() {
+    document.getElementById('photoCard').innerHTML =
+      '<div class="photo-ico">✅</div><p style="font-size:13px;color:var(--green);">Foto adicionada</p>';
+  }
+
+  function shareAlert() {
+    if (navigator.share) {
+      navigator.share({ title:'SENTINELA — Alerta', text:'⚠️ RISCO ALTO de enchente em Ribeirão Pires. Evacuação em curso.', url: window.location.href });
+    } else {
+      alert('Alerta compartilhado!');
+    }
+  }
+
+  // ── KEYBOARD (desktop) ──
+  document.addEventListener('keydown', e => {
+    const curr = stack[stack.length - 1];
+    const idx  = SCREEN_ORDER.indexOf(curr);
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+      if (idx < SCREEN_ORDER.length - 1) goTo(SCREEN_ORDER[idx + 1]);
+    }
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') goBack();
+  });
+
+  // ── AUTO-ADVANCE SPLASH ──
+  setTimeout(() => goTo('login'), 2200);
+</script>
+</body>
+</html>
