@@ -1457,6 +1457,13 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
+  text-decoration: none;
+  color: inherit;
+  transition: background .2s, border-color .2s;
+}
+.youtube-box:hover {
+  background: rgba(255,0,0,.18);
+  border-color: rgba(255,0,0,.5);
 }
 
 .youtube-box__icon {
